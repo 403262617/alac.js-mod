@@ -40,8 +40,9 @@ For detailed information on how to use Aurora.js, check out the [documentation](
     
 ## License
 
-alac.js is released under the same terms as the original ALAC decoder from Apple, which is the 
-[Apache 2](http://www.apache.org/licenses/LICENSE-2.0) license.
+ALAC.js is released under the same terms as the original ALAC decoder from Apple, which is the [Apache 2](http://www.apache.org/licenses/LICENSE-2.0) license.
+
+Aurora.js is released under the MIT license.
 
 ## What's new in this modified version
 
