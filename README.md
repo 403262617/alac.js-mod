@@ -17,16 +17,10 @@ You can check out a [demo](http://audiocogs.org/codecs/alac/) alongside our othe
 alac.js was written by [@jensnockert](http://github.com/jensnockert) and [@devongovett](http://github.com/devongovett) 
 of [Audiocogs](http://audiocogs.org/).
 
-## Building
-
-We use [browserify](https://github.com/substack/node-browserify) to build alac.js.  You can download a
-prebuilt version from the Github [releases](https://github.com/audiocogs/alac.js/releases) page. 
-To build alac.js for the browser yourself, use the following commands:
-
-    npm install
-    make browser
+## Usage
     
-This will place a built `alac.js` file, as well as a source map in the `build/` directory.
+You can direct use `alac.js` file, as like
+    <sciprt src="alac.js"></script>
 
 alac.js depends on [Aurora.js](https://github.com/audiocogs/aurora.js), our audio codec framework.
 For detailed information on how to use Aurora.js, check out the [documentation](https://github.com/audiocogs/aurora.js/wiki).
