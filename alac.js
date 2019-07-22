@@ -295,7 +295,10 @@
                         sampleRate: data.readUInt32()
                     };
                     (_base = this.format).bitsPerChannel || (_base.bitsPerChannel = this.config.bitDepth);
-                    _base.sampleRate = this.config.sampleRate;
+                    if (this.config.bitDepth > 16) {
+                        this.format.floatingPoint = true;
+                    }
+                    (_base = this.format).sampleRate || (_base.sampleRate = this.config.sampleRate);
                     this.mixBuffers = [new Int32Array(this.config.frameLength), new Int32Array(this.config.frameLength)];
                     predictorBuffer = new ArrayBuffer(this.config.frameLength * 4);
                     this.predictor = new Int32Array(predictorBuffer);
@@ -412,7 +415,7 @@
                                 if (channels === 2) {
                                     Matrixlib.unmix24(this.mixBuffers[0], this.mixBuffers[1], out16, numChannels, samples, mixBits, mixRes, this.shiftBuffer, bytesShifted);
                                 } else {
-                                    throw new Error('Only supports stereo channel mode at 24bit ALAC now.');
+                                    throw new Error('Only supports streo channel audio in 24bit dit depth right now.');
                                 }
                                 break;
                             default:
@@ -456,29 +459,43 @@
                             break;
                         default:
                             throw new Error("Unknown element: " + tag);
+                            break;
                         }
                         if (channelIndex > numChannels) {
                             throw new Error('Channel index too large.');
                         }
                     }
                     switch (this.config.bitDepth) {
-                        case 16:
-                            return new Int16Array(output);
-                        case 24:
-                            // Padding to 32bit
-                            var b32Buffer = new ArrayBuffer(samples * numChannels * 4);
-                            var b32Array = new Int32Array(samples * numChannels);
-                            var v = new DataView(output);
-                            var i, j = 1;
-                            for (i = 0; i < samples * numChannels; ++i, j += 3) {
-                                var byteHigh = v.getInt16(j, true);
-                                var byteLow = v.getUint8(j - 1, true);
-                                b32Array[i] = byteHigh << 8 | byteLow;
+                    case 16:
+                        return new Int16Array(output);
+                        break;
+                    case 24:
+                        // Padding to 32bit
+                        var b32Buffer = new ArrayBuffer(samples * numChannels * 4);
+                        var b32Array = new Int32Array(samples * numChannels);
+                        var v = new DataView(output);
+                        var i, j = 1;
+                        for (i = 0; i < samples * numChannels; ++i, j += 3) {
+                            var byteHigh = v.getInt16(j, true);
+                            var byteLow = v.getUint8(j - 1, true);
+                            b32Array[i] = byteHigh << 8 | byteLow;
+                        }
+                        var f32Array = new Float32Array(samples * numChannels);
+                        for (i = 0; i < samples * numChannels; ++i) {
+                            if (b32Array[i] === 0) {
+                                continue;
                             }
-                            return b32Array;
-                        default:
-                            throw new Error('Only supports 16bit and 24bit audio right now.');
-                            break;
+                            if (b32Array[i] > 0) {
+                                f32Array[i] = b32Array[i] / 8388607.0;
+                            } else {
+                                f32Array[i] = b32Array[i] / 8388608.0;
+                            }
+                        }
+                        return f32Array;
+                        break;
+                    default:
+                        throw new Error('Only supports 16bit and 24bit audio right now.');
+                        break;
                     }
                 };
 
@@ -786,7 +803,8 @@
                         HBYTE = 2,
                         MBYTE = 1,
                         LBYTE = 0;
-                    var j, k, l = 0x0000, r = 0x0000;
+                    var j, k, l = 0x0000,
+                        r = 0x0000;
                     if (mixres != 0) {
                         /* matrixed stereo */
                         if (bytesShifted != 0) {
@@ -892,7 +910,6 @@
                 };
 
                 return Matrixlib;
-
             })();
 
             module.exports = Matrixlib;
@@ -901,4 +918,3 @@
 
     }, {}]
 }, {}, [2]);
-//# sourceMappingURL=alac.js.map
