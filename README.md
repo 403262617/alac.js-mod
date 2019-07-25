@@ -47,6 +47,6 @@ Aurora.js is released under the MIT license.
 ## What's new in this modified version
 
 ### ALAC.js
-*   24bit support (only stereo)
+*   24bit and 32bit Apple Lossless support (only stereo)
 ### Aurora.js
 *   Use [cors-anywhere](https://github.com/Rob--W/cors-anywhere) proxy to add CORS headers to the request

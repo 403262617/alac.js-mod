@@ -229,12 +229,8 @@
                 ID_PCE = 5;
                 ID_FIL = 6;
                 ID_END = 7;
-                ALACDecoder.prototype.init = function () {
-                    this.format.bitsPerChannel = 32;
-                }
                 ALACDecoder.prototype.setCookie = function (cookie) {
-                    var data, predictorBuffer, _base;
-                    data = AV.Stream.fromBuffer(cookie);
+                    var _base = this.format, data = AV.Stream.fromBuffer(cookie), predictorBuffer;
                     if (data.peekString(4, 4) === 'frma') {
                         data.advance(12);
                     }
@@ -254,7 +250,8 @@
                         avgBitRate: data.readUInt32(),
                         sampleRate: data.readUInt32()
                     };
-                    ((_base = this.format).bitsPerChannel = this.config.bitDepth) || (_base.bitsPerChannel = this.config.bitDepth);
+                    _base.bitsPerChannel = this.config.bitDepth;
+                    _base.channelsPerFrame = this.config.numChannels;
                     _base.sampleRate = this.config.sampleRate;
                     this.mixBuffers = [new Int32Array(this.config.frameLength), new Int32Array(this.config.frameLength)];
                     predictorBuffer = new ArrayBuffer(this.config.frameLength * 4);
@@ -371,21 +368,19 @@
                                 if (channels === 2) {
                                     Matrixlib.unmix24(this.mixBuffers[0], this.mixBuffers[1], out16, numChannels, samples, mixBits, mixRes, this.shiftBuffer, bytesShifted);
                                 } else {
-                                    throw new Error('Only supports stereo channel mode at 24bit ALAC now.');
+                                    throw new Error('Only supports stereo channel in 24bit Apple Lossless now.');
                                 }
                                 break;
-                            /* @@ It maybe right @@
                             case 32:
                                 out16 = new Int32Array(output, channelIndex);
                                 if (channels === 2) {
                                     Matrixlib.unmix32(this.mixBuffers[0], this.mixBuffers[1], out16, numChannels, samples, mixBits, mixRes, this.shiftBuffer, bytesShifted);
                                 } else {
-                                    throw new Error('Only supports stereo channel mode at 32bit ALAC now.');
+                                    throw new Error('Only supports stereo channel in 32bit Apple Lossless now.');
                                 }
                                 break;
-                            */
                             default:
-                                throw new Error('Only supports 16bit, 24bit ALAC now.');
+                                throw new Error('Only supports 16bit, 24bit and 32bit now.');
                                 break;
                             }
                             channelIndex += channels;
@@ -435,18 +430,14 @@
                         i;
                     switch (this.config.bitDepth) {
                     case 16:
-                        var i16Array = new Int16Array(output);
-                        for (i = 0; i < samples * numChannels; ++i) {
-                            i32Array[i] = i16Array[i] << 16;
-                        }
-                        return i32Array;
+                        return new Int16Array(output);
                     case 24:
                         var v = new DataView(output),
                             j = 1;
                         for (i = 0; i < samples * numChannels; ++i, j += 3) {
                             var byteHigh = v.getInt16(j, true);
                             var byteLow = v.getUint8(j - 1, true);
-                            i32Array[i] = (byteHigh << 8 | byteLow) << 8;
+                            i32Array[i] = byteHigh << 8 | byteLow;
                         }
                         return i32Array;
                     case 32:
@@ -846,21 +837,21 @@
                             rt = v[j];
                             l = lt + rt - ((mixres * rt) >> mixbits);
                             r = l - rt;
-                            out[stride * j + 0] = (l << shift) | shiftUV[k + 0];
-                            out[stride * j + 1] = (r << shift) | shiftUV[k + 1];
+                            out[stride * j + 0] = (l << shift) | shiftUV[k + 0] & 0xffff;
+                            out[stride * j + 1] = (r << shift) | shiftUV[k + 1] & 0xffff;
                         }
                     } else {
                         if (bytesShifted === 0) {
                             /* interleaving w/o shift */
                             for (j = 0; j < samples; j++) {
-                                out[stride * j + 0] = u[j];
-                                out[stride * j + 1] = v[j];
+                                out[stride * j + 0] = u[j] & 0xffff;
+                                out[stride * j + 1] = v[j] & 0xffff;
                             }
                         } else {
                             /* interleaving with shift */
                             for (j = 0, k = 0; j < samples; j++, k += 2) {
-                                out[stride * j + 0] = (u[j] << shift) | shiftUV[k + 0];
-                                out[stride * j + 1] = (v[j] << shift) | shiftUV[k + 1];
+                                out[stride * j + 0] = (u[j] << shift) | shiftUV[k + 0] & 0xffff;
+                                out[stride * j + 1] = (v[j] << shift) | shiftUV[k + 1] & 0xffff;
                             }
                         }
                     }
